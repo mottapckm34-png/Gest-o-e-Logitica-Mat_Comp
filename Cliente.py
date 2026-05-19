@@ -1,6 +1,6 @@
- import dataclass
 
-from dataclasses
+
+from dataclasses  import dataclass
 class Cliente:
 # id : int
 # nome : str

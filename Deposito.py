@@ -7,3 +7,5 @@ class Deposito:
     nome: str
     latitude: float
     longitude: float
+    peso: float
+    prazo: float

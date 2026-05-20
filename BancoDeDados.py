@@ -39,5 +39,5 @@ df_client = pd.DataFrame(project_data) #matriz de cliente principal
 
 df_client.set_index('id', inplace=True) #garante que o iD é o indice da tabela para a busca ser mais facil
 
-print ("\nMatriz de armazenamento de dados gerada\n")
+print ("Matriz de armazenamento de dados gerada")
 print (df_client)

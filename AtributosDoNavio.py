@@ -1,0 +1,3 @@
+VelocidadeMediaDoNavio: float
+CargaMaximaDoNavio: float
+CombustivelPorMilhaNautica: float

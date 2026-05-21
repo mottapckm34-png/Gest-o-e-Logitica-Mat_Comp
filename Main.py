@@ -3,84 +3,95 @@ from Deposito import Deposito
 from AtributosDoNavio import AtributosDoNavio
 from BancoDeDados import BancoDeDados
 
-#Imput das Funçoes
 
-def cadastroCliente():
-    """ Lê os dados de um Cliente"""   
-    print(f"\n Cliente #{proximo_id}")
-    nome = input("Nome: ")
-    latitude = float(input("Latitude: "))
-    longitude = float(input("Longitude: "))
-    peso = float(input("Peso da entrega (Kg): "))
-    janela_inicio = float(input("Janela de início (Ex: 8.0 = 8:00): "))
-    janela_fim = float(input("Janela de fim (Ex: 18.0 = 18:00): "))
+# ─────────────────────────────────────────────
+#  FUNÇÕES DE CADASTRO
+# ─────────────────────────────────────────────
 
-    return Cliente(proximo_id,
-        nome,
-        latitude,
-        longitude,
-        peso,
-        janela_inicio,
-        janela_fim
-    ) 
-    
+def cadastroCliente(proximo_id: int) -> Cliente:
+    """Lê os dados de um Cliente via terminal."""
+    print(f"\n  --- Cliente #{proximo_id} ---")
+    nome          = input("  Nome                              : ")
+    latitude      = float(input("  Latitude                          : "))
+    longitude     = float(input("  Longitude                         : "))
+    peso          = float(input("  Peso da entrega (kg)              : "))
+    janela_inicio = float(input("  Janela de início (ex: 8.0 = 8:00) : "))
+    janela_fim    = float(input("  Janela de fim    (ex: 18.0 = 18:00): "))
+    tempo_servico = float(input("  Tempo de serviço (horas)          : "))
 
-def cadastroDeposito(): -> Deposito:
-   
-    """ Lê os dados de um Depósito"""   
-    print(f"\n Depósito #{proximo_id}")
-    nome = input("Nome: ")
-    latitude = float(input("Latitude: "))
-    longitude = float(input("Longitude: "))
-
-    return Deposito(proximo_id,
-        nome,
-        latitude,
-        longitude
+    return Cliente(
+        id=proximo_id,
+        nome=nome,
+        latitude=latitude,
+        longitude=longitude,
+        peso=peso,
+        janela_inicio=janela_inicio,
+        janela_fim=janela_fim,
+        tempo_servico=tempo_servico
     )
-    
 
-def cadastroAtributosNavio(): -> AtributosDoNavio:
-    """ Lê os dados de um Navio"""   
-    print(f"\n Navio #{proximo_id}")
-    nome = input("Nome: ")
-    capacidade = float(input("Capacidade (Kg): "))
-    velocidade = float(input("Velocidade (Km/h): "))
-    custo_operacional = float(input("Custo operacional (R$/h): "))
 
-    return AtributosDoNavio(proximo_id,
-        nome,
-        capacidade,
-        velocidade,
-        custo_operacional
+def cadastroDeposito() -> Deposito:
+    """Lê as coordenadas do porto central via terminal."""
+    print("\n=== Cadastro do Porto Central (Depósito) ===")
+    latitude  = float(input("  Latitude : "))
+    longitude = float(input("  Longitude: "))
+    return Deposito(latitude=latitude, longitude=longitude)
+
+
+def cadastroAtributosNavio() -> AtributosDoNavio:
+    """Lê os atributos do navio via terminal."""
+    print("\n=== Cadastro do Navio ===")
+    velocidade   = float(input("  Velocidade média (nós)              : "))
+    carga        = float(input("  Carga máxima (toneladas)            : "))
+    combustivel  = float(input("  Combustível por milha náutica (L)   : "))
+    custo_litro  = float(input("  Custo por litro de combustível (R$) : "))
+    custo_fixo   = float(input("  Custo fixo por viagem (R$)          : "))
+
+    return AtributosDoNavio(
+        velocidadeMediaDoNavio=velocidade,
+        cargaMaximaDoNavio=carga,
+        combustivelPorMilhaNautica=combustivel,
+        custoPorLitroDeCombustivel=custo_litro,
+        custoFixoPorViagem=custo_fixo
     )
-    
+
 
 def loop_cadastro_clientes(banco: BancoDeDados):
-    """ Loop para cadastro de Clientes"""   
-print("Cadastro de Clientes ")   
+    """Loop para cadastro de múltiplos clientes."""
+    print("\n=== Cadastro de Clientes ===")
+    proximo_id = 1
 
     while True:
-        cliente = cadastroCliente()
-        banco.clientes.append(cliente)
-        print(f"Cliente #{cliente.id} cadastrado com sucesso!")
-        continuar = input("Deseja cadastrar outro cliente? (s/n): ")
-        if continuar.lower() != 's':
+        opcao = input("\nDeseja cadastrar um cliente? (s/n): ").strip().lower()
+        if opcao != 's':
             break
+        cliente = cadastroCliente(proximo_id)
+        banco.adicionar_cliente(cliente)
+        print(f"  ✓ Cliente '{cliente.nome}' cadastrado com sucesso!")
+        proximo_id += 1
+
+
+# ─────────────────────────────────────────────
+#  MAIN
+# ─────────────────────────────────────────────
 
 def main():
+   
+    print("    Sistema de Rotas Marítimas       ")
     
 
     deposito = cadastroDeposito()
-    navio = cadastroAtributosNavio()
-    banco = BancoDeDados(Deposito=deposito, Navio=navio)
+    navio    = cadastroAtributosNavio()
+    banco    = BancoDeDados(deposito=deposito, navio=navio)
+
     loop_cadastro_clientes(banco)
-    print("\nCadastro concluído!")
+
+    print("\n\n══════════ RESUMO ══════════")
+    banco.exibir_deposito()
+    banco.exibir_navio()
+    banco.exibir_clientes()
 
 
-    print(f"Depósito: {banco.deposito}") #mostrar os dados do depósito
-    print(f"Navio: {banco.navio}") #mostrar os dados do navio
-    print("Clientes cadastrados:") #mostrar os dados dos clientes cadastrados
-
-if __name__ == "__main__": #Ponto de entrada do programa
-    main()    
+if __name__ == "__main__":  # Ponto de entrada do programa
+    main()

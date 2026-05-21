@@ -22,22 +22,24 @@ for i  in range(1,qtd_clientes + 1): #Percorre a quantidade de clientes
     ids.append(i) #adiciona um ID no final da  lista
 
 
+#insere manualmente os dados dos clientes para fazer teste de funcionamento, depois iremos remover
     latitudes.append(float(input(f"Latitude do cliente {i}: ")))
     longitudes.append(float(input(f"Longitude do cliente {i}: ")))
 
     weights.append(float(input(f"Peso da carga do cliente {i} (toneladas): "))) #tonaeladas por ser barcos
 
 
-project_data = { #dados dos clientes
+#dados dos clientes
+project_data = {
     'id': ids,
     'latitude': latitudes, 
     'longitude': longitudes,
     'cargo_weight': weights
 }
 
-df_client = pd.DataFrame(project_data) #matriz de cliente principal
+df_client = pd.DataFrame(project_data) #matriz de clientes
 
 df_client.set_index('id', inplace=True) #garante que o iD é o indice da tabela para a busca ser mais facil
 
 print ("Matriz de armazenamento de dados gerada")
-print (df_client)
+print (df_client) #printa a matriz de clientes para a conferencia dos dados

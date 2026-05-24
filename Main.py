@@ -3,7 +3,6 @@ from Deposito import Deposito
 from AtributosDoNavio import AtributosDoNavio
 from BancoDeDados import BancoDeDados
 
-
 # ─────────────────────────────────────────────
 #  FUNÇÕES DE CADASTRO
 # ─────────────────────────────────────────────
@@ -86,12 +85,12 @@ def main():
     banco    = BancoDeDados(deposito=deposito, navio=navio)
 
     loop_cadastro_clientes(banco)
-
+    banco.gerar_matrizes()
     print("\n\n══════════ RESUMO ══════════")
     banco.exibir_deposito()
     banco.exibir_navio()
     banco.exibir_clientes()
-
+    banco.exibir_matrizes() # Exibe as matrizes de distâncias e tempos após o cadastro dos clientes
 
 if __name__ == "__main__":  # Ponto de entrada do programa
     main()

@@ -1,126 +1,71 @@
-WIDTH = 600
-HEIGHT = 400
+import math
+from Cliente import Cliente
+from Obstaculo import Obstaculo, OBSTACULOS
+from CalculoDaDistancia import haversine 
 
-# Physics parameters
-DT = 0.03
-G = 100.0          # constant downward force per unit mass
-DRAG = 2.0         # viscous damping coefficient
-REP_STRENGTH = 2000.0
-OBSTACLE_R = 35.0
+FORCA_ATRATIVA  = 1000.0
+FORCA_REPULSIVA = 2000.0
 
-# Ball state
-ball_r = 10
-x = WIDTH / 2.0
-y = ball_r + 2
-vx = 0.0
-vy = 0.0
 
-# Obstacle at lower middle, slightly right
-ox = 1.01 * WIDTH / 2.0
-oy = 285.0
+def f_atrativa(lat_navio: float, lon_navio: float,
+               cliente: Cliente) -> tuple[float, float]:
+    # Força que atrai o navio para o cliente.
+    # Retorna vetor (fx, fy) apontando DO navio PARA o cliente
 
-running = True
+    distancia = haversine(lat_navio, lon_navio, cliente.latitude, cliente.longitude)
 
-def obstacle_force(px, py):
-    dx = px - ox
-    dy = py - oy
-    r = math.sqrt(dx * dx + dy * dy)
+    if distancia < 1e-6:
+        return (0.0, 0.0)
 
-    if r < 1e-6:
-        return (0.0, 0.0)
+    magnitude = FORCA_ATRATIVA * cliente.peso / (distancia ** 2)
 
-    if r < OBSTACLE_R:
-        r = OBSTACLE_R
+    dlat  = cliente.latitude  - lat_navio
+    dlon  = cliente.longitude - lon_navio
+    norma = math.sqrt(dlat**2 + dlon**2)
 
-    # Exponential decay: at 2R, exp(-4) ~ 1.8%
-    # If you want even steeper, increase 4.0.
-    mag = REP_STRENGTH * math.exp(-4.0 * (r / OBSTACLE_R - 1.0))
+    return (magnitude * dlat / norma,
+            magnitude * dlon / norma)
 
-    return (mag * dx / r, mag * dy / r)
 
-def total_force(px, py, vx, vy):
-    fx_rep, fy_rep = obstacle_force(px, py)
-    fx_drag = -DRAG * vx
-    fy_drag = -DRAG * vy
-    fy_const = G
-    return (fx_rep + fx_drag, fy_rep + fy_drag + fy_const)
+def f_repulsiva(lat_navio: float, lon_navio: float,
+                obstaculo: Obstaculo) -> tuple[float, float]:
+    # Força que repele o navio para longe do obstáculo.
+    # Retorna vetor (fx, fy) apontando DO obstáculo PARA o navio
+    distancia = haversine(lat_navio, lon_navio, obstaculo.latitude, obstaculo.longitude)
 
-def update():
-    global x, y, vx, vy
+    if distancia < 1e-6:
+        return (0.0, 0.0)
 
-    fx, fy = total_force(x, y, vx, vy)
+    d = max(distancia, obstaculo.raio_km)  # navio não atravessa o obstáculo
 
-    # Explicit Euler
-    vx += fx * DT
-    vy += fy * DT
-    x += vx * DT
-    y += vy * DT
+    # Decaimento exponencial — igual ao código do mentor
+    magnitude = FORCA_REPULSIVA * math.exp(-4.0 * (d / obstaculo.raio_km - 1.0))
 
-    # Soft walls
-    if x < ball_r:
-        x = ball_r
-        vx = -0.6 * vx
-    if x > WIDTH - ball_r:
-        x = WIDTH - ball_r
-        vx = -0.6 * vx
-    if y < ball_r:
-        y = ball_r
-        vy = -0.6 * vy
-    if y > HEIGHT - ball_r:
-        y = HEIGHT - ball_r
-        vy = -0.6 * vy
+    dlat  = lat_navio - obstaculo.latitude
+    dlon  = lon_navio - obstaculo.longitude
+    norma = math.sqrt(dlat**2 + dlon**2)
 
-def draw_arrow(canvas, p1, p2, color, width=2):
-    canvas.draw_line(p1, p2, width, color)
-    dx = p2[0] - p1[0]
-    dy = p2[1] - p1[1]
-    ang = math.atan2(dy, dx)
-    head = 8
-    a1 = ang + math.pi * 0.8
-    a2 = ang - math.pi * 0.8
-    p3 = (p2[0] + head * math.cos(a1), p2[1] + head * math.sin(a1))
-    p4 = (p2[0] + head * math.cos(a2), p2[1] + head * math.sin(a2))
-    canvas.draw_line(p2, p3, width, color)
-    canvas.draw_line(p2, p4, width, color)
+    return (magnitude * dlat / norma,
+            magnitude * dlon / norma)
 
-def field_vector(px, py):
-    fx, fy = total_force(px, py, 0.0, 0.0)
-    return fx, fy
 
-def draw(canvas):
-    canvas.draw_line((0, 0), (WIDTH, 0), 2, "Black")
-    canvas.draw_line((0, 0), (0, HEIGHT), 2, "Black")
-    canvas.draw_line((WIDTH - 1, 0), (WIDTH - 1, HEIGHT), 2, "Black")
-    canvas.draw_line((0, HEIGHT - 1), (WIDTH, HEIGHT - 1), 2, "Black")
+def f_total(lat_navio: float, lon_navio: float,
+            clientes: list[Cliente],
+            obstaculos: list[Obstaculo] = OBSTACULOS) -> tuple[float, float]:
+   # Calcula a força total (atrativa + repulsiva) no navio, dada sua posição e os clientes/obstáculos. 
+   # Retorna vetor (fx_total, fy_total) representando a força resultante.
 
-    canvas.draw_circle((ox, oy), OBSTACLE_R, 2, "Red", "Pink")
-    canvas.draw_circle((ox, oy), 4, 1, "Red", "Red")
+    fx_total = 0.0
+    fy_total = 0.0
 
-    # Force field arrows on a coarse grid
-    scale = 0.015
-    for gx in range(60, WIDTH - 60, 30):
-        for gy in range(60, HEIGHT - 60, 30):
-            fx, fy = field_vector(gx, gy)
-            mag = math.sqrt(fx * fx + fy * fy)
-            if mag > 1e-6:
-                l = max(10.0, min(28.0, mag * scale))
-                ux = fx / mag
-                uy = fy / mag
-                p1 = (gx, gy)
-                p2 = (gx + ux * l, gy + uy * l)
-                draw_arrow(canvas, p1, p2, "Blue", 1)
+    for cliente in clientes:
+        fx, fy = f_atrativa(lat_navio, lon_navio, cliente)
+        fx_total += fx
+        fy_total += fy
 
-    canvas.draw_circle((x, y), ball_r, 2, "Green", "Orange")
-    canvas.draw_text("Euler + gravity + viscous drag + repulsive obstacle", (10, 20), 18, "Black")
-    canvas.draw_text("Ball starts at rest, at top center", (10, 40), 14, "Black")
+    for obstaculo in obstaculos:
+        fx, fy = f_repulsiva(lat_navio, lon_navio, obstaculo)
+        fx_total += fx
+        fy_total += fy
 
-def tick():
-    if running:
-        update()
-
-frame = simplegui.create_frame("Ball in Force Field", WIDTH, HEIGHT)
-frame.set_canvas_background("Teal")
-frame.set_draw_handler(draw)
-timer = simplegui.create_timer(int(DT * 1000), tick)
-timer.start()
-frame.start()
+    return (fx_total, fy_total)

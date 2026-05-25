@@ -10,13 +10,13 @@ from BancoDeDados import BancoDeDados
 def cadastroCliente(proximo_id: int) -> Cliente:
     """Lê os dados de um Cliente via terminal."""
     print(f"\n  --- Cliente #{proximo_id} ---")
-    nome          = input("  Nome                              : ")
-    latitude      = float(input("  Latitude                          : "))
-    longitude     = float(input("  Longitude                         : "))
-    peso          = float(input("  Peso da entrega (kg)              : "))
-    janela_inicio = float(input("  Janela de início (ex: 8.0 = 8:00) : "))
+    nome          = input("  Nome: ")
+    latitude      = float(input("  Latitude: "))
+    longitude     = float(input("  Longitude: "))
+    peso          = float(input("  Peso da entrega (kg): "))
+    janela_inicio = float(input("  Janela de início (ex: 8.0 = 8:00): "))
     janela_fim    = float(input("  Janela de fim    (ex: 18.0 = 18:00): "))
-    tempo_servico = float(input("  Tempo de serviço (horas)          : "))
+    tempo_servico = float(input("  Tempo de serviço (horas): "))
 
     return Cliente(
         id=proximo_id,
@@ -33,7 +33,7 @@ def cadastroCliente(proximo_id: int) -> Cliente:
 def cadastroDeposito() -> Deposito:
     """Lê as coordenadas do porto central via terminal."""
     print("\n=== Cadastro do Porto Central (Depósito) ===")
-    latitude  = float(input("  Latitude : "))
+    latitude  = float(input("  Latitude: "))
     longitude = float(input("  Longitude: "))
     return Deposito(latitude=latitude, longitude=longitude)
 
@@ -41,11 +41,11 @@ def cadastroDeposito() -> Deposito:
 def cadastroAtributosNavio() -> AtributosDoNavio:
     """Lê os atributos do navio via terminal."""
     print("\n=== Cadastro do Navio ===")
-    velocidade   = float(input("  Velocidade média (nós)              : "))
-    carga        = float(input("  Carga máxima (toneladas)            : "))
-    combustivel  = float(input("  Combustível por milha náutica (L)   : "))
-    custo_litro  = float(input("  Custo por litro de combustível (R$) : "))
-    custo_fixo   = float(input("  Custo fixo por viagem (R$)          : "))
+    velocidade   = float(input("  Velocidade média (nós): "))
+    carga        = float(input("  Carga máxima (toneladas): "))
+    combustivel  = float(input("  Combustível por milha náutica (L): "))
+    custo_litro  = float(input("  Custo por litro de combustível (R$): "))
+    custo_fixo   = float(input("  Custo fixo por viagem (R$): "))
 
     return AtributosDoNavio(
         velocidadeMediaDoNavio=velocidade,

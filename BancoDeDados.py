@@ -4,13 +4,13 @@ from Cliente import Cliente
 from Deposito import Deposito
 from AtributosDoNavio import AtributosDoNavio
 from CalculoDaDistancia import haversine
-from CalculaDeTempoDaRota import calcula_tempo_da_rota
+from CalculaDeTenpoDaRota import calcula_tempo_da_rota
  
  
 class BancoDeDados:
     """
     Repositório central do projeto.
-    Armazena o depósito, o navio, os clientes e as matrizes n×n.
+    Armazena o depósito, o navio, os clientes e as matrizes n × n.
     """
  
     def __init__(self, deposito: Deposito, navio: AtributosDoNavio):

@@ -4,7 +4,7 @@ from Cliente import Cliente
 from Deposito import Deposito
 from AtributosDoNavio import AtributosDoNavio
 from CalculoDaDistancia import haversine
-from CalculaDeTenpoDaRota import calcula_tempo_da_rota
+from CalculaDeTempoDaRota import calcula_tempo_da_rota
  
  
 class BancoDeDados:

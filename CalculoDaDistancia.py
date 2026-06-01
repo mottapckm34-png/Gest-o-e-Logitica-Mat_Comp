@@ -18,8 +18,3 @@ def  haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
     distance = R * c
     return distance
-
-
-
-
-

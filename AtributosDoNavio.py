@@ -8,3 +8,4 @@ class AtributosDoNavio:
     combustivelPorMilhaNautica: float # em litros por milha nautica, ou seja. 0.5 litros por milha nautica
     custoPorLitroDeCombustivel: float # em reais por litro, ou seja, 5 reais por litro
     custoFixoPorViagem: float # em reais, ou seja, 1000
+    MassaDoNavio: float # em kg

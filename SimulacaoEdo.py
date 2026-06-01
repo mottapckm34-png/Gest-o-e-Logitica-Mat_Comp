@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation # <- Adicionado para o FuncAnimation funcionar!
 from CampoDeForcas import f_total
 from Cliente import Cliente
 from Deposito import Deposito
@@ -69,48 +70,25 @@ def trajetoria_mapa(
  
     # Obstáculos
     for obs in OBSTACULOS:
-        plt.scatter(
-            obs.longitude, obs.latitude,
-            s=obs.raio_km * 1000, color='red', alpha=0.3
-        )
-        plt.scatter(
-            obs.longitude, obs.latitude,
-            s=20, color='red', label=obs.nome
-        )
+        plt.scatter(obs.longitude, obs.latitude,s=obs.raio_km * 1000, color='red', alpha=0.3)
+        plt.scatter(obs.longitude, obs.latitude, s=20, color='red', label=obs.nome)
         plt.text(obs.longitude, obs.latitude, f"  {obs.nome}", fontsize=8, color='red')
- 
+        
     # Clientes
     for cliente in clientes:
-        plt.scatter(
-            cliente.longitude, cliente.latitude,
-            color='blue', marker='^', s=100
-        )
-        plt.text(
-            cliente.longitude, cliente.latitude,
-            f"  C{cliente.id} - {cliente.nome}", fontsize=9, fontweight='bold', color='blue'
-        )
+        plt.scatter(cliente.longitude, cliente.latitude,color='blue', marker='^', s=100)
+        plt.text(cliente.longitude, cliente.latitude,f"  C{cliente.id} - {cliente.nome}", fontsize=9, fontweight='bold', color='blue')
  
     # Depósito
-    plt.scatter(
-        deposito.longitude, deposito.latitude,
-        color='green', marker='s', s=120, label='Depósito', zorder=5
-    )
-    plt.text(
-        deposito.longitude, deposito.latitude,
-        "  Depósito", fontsize=9, fontweight='bold', color='green'
-    )
+    plt.scatter(deposito.longitude, deposito.latitude,color='green', marker='s', s=120, label='Depósito', zorder=5)
+    plt.text(deposito.longitude, deposito.latitude,"  Depósito", fontsize=9, fontweight='bold', color='green')
  
     # Trajetória do navio
-    plt.plot(
-        trajetoria_lon, trajetoria_lat,
-        color='orange', linewidth=1.5, label='Trajetória do navio', zorder=4
-    )
+    plt.plot(trajetoria_lon, trajetoria_lat,color='orange', linewidth=1.5, label='Trajetória do navio', zorder=4)
  
     # Ponto inicial e final da trajetória
-    plt.scatter(trajetoria_lon[0],  trajetoria_lat[0],
-                color='green', s=80, zorder=6)
-    plt.scatter(trajetoria_lon[-1], trajetoria_lat[-1],
-                color='orange', marker='*', s=200, label='Posição final', zorder=6)
+    plt.scatter(trajetoria_lon[0],  trajetoria_lat[0],color='green', s=80, zorder=6)
+    plt.scatter(trajetoria_lon[-1], trajetoria_lat[-1],color='orange', marker='*', s=200, label='Posição final', zorder=6)
  
     plt.title("Simulação EDO — Trajetória do navio no Campo de Forças")
     plt.xlabel("Longitude")
@@ -118,4 +96,69 @@ def trajetoria_mapa(
     plt.legend()
     plt.grid(True, linestyle=':', alpha=0.7)
     plt.tight_layout()
+    plt.show()
+    
+
+# A função de animação foi separada corretamente para o nível raiz
+def trajetoria_animada(deposito:Deposito, clientes:list[Cliente], trajetoria_lat:list[float], trajetoria_lon:list[float], intervalo_ms:int = 20):
+    fig, ax = plt.subplots(figsize=(10,8))
+    
+    # Obstaculos
+    for obs in OBSTACULOS:
+        ax.scatter(obs.longitude, obs.latitude, s=obs.raio_km * 1000, color = 'red', alpha = 0.3)
+        ax.scatter(obs.longitude, obs.latitude, s=20, color='red', label=obs.nome)
+        ax.text(obs.longitude, obs.latitude, f"  {obs.nome}", fontsize=8, color='red')
+        
+    # Clientes (Retirado de dentro do loop dos obstáculos)
+    for cliente in clientes:
+        ax.scatter(cliente.longitude, cliente.latitude, color='blue', marker='^', s=100)
+        ax.text(cliente.longitude, cliente.latitude, f"  C{cliente.id} - {cliente.nome}", fontsize=9, fontweight='bold', color='blue')
+            
+    # Deposito (Retirado de dentro do loop dos clientes)
+    ax.scatter(deposito.longitude, deposito.latitude, color='green', marker='s', s=120, label='Depósito', zorder=5)
+    ax.text(deposito.longitude, deposito.latitude, "  Depósito", fontsize=9, fontweight='bold', color='green')
+            
+    # Trajetoria completa
+    ax.plot(trajetoria_lon, trajetoria_lat, color='lightgray', linewidth=1.0, zorder=3)        
+
+    # Animação da trajetoria               
+    rastro,  = ax.plot([], [], color='orange', linewidth=1.5,label='Trajetória do navio', zorder=4)
+
+    # Ponto do navio
+    navio,   = ax.plot([], [], 'o', color='orange', markersize=8, label='Navio', zorder=6)
+
+    # ── Configurações do gráfico ────────────────────────────────
+    ax.set_title("Simulação EDO — Trajetória do navio no Campo de Forças")
+    ax.set_xlabel("Longitude")
+    ax.set_ylabel("Latitude")
+    ax.legend()
+    ax.grid(True, linestyle=':', alpha=0.7)
+    plt.tight_layout()
+
+    # ── Funções de animação ─────────────────────────────────────
+    def init():
+        rastro.set_data([], [])
+        navio.set_data([], [])
+        return rastro, navio
+
+    def update(frame):
+        # Atualiza o rastro com todos os pontos até o frame atual
+        rastro.set_data(trajetoria_lon[:frame], trajetoria_lat[:frame])
+        # Move o ponto do navio para a posição atual
+        navio.set_data([trajetoria_lon[frame]], [trajetoria_lat[frame]])
+        return rastro, navio
+
+    # Pula frames para a animação não ser lenta demais em trajetórias longas
+    total_frames = len(trajetoria_lat)
+    passo_frame  = max(1, total_frames // 300)  # máximo 300 frames exibidos
+    frames       = range(0, total_frames, passo_frame)
+
+    anim = animation.FuncAnimation(
+        fig, update,
+        frames=frames,
+        init_func=init,
+        interval=intervalo_ms,
+        blit=True
+    )
+
     plt.show()

@@ -2,7 +2,7 @@ from Cliente import Cliente
 from Deposito import Deposito
 from AtributosDoNavio import AtributosDoNavio
 from BancoDeDados import BancoDeDados
-from SimulacaoEdo import simula_trajeto_euler, trajetoria_mapa
+from SimulacaoEdo import simula_trajeto_euler, trajetoria_animada
 
 # ─────────────────────────────────────────────
 #  FUNÇÕES DE CADASTRO
@@ -103,7 +103,7 @@ def main():
     )
 
     # Exibe o mapa com a trajetória
-    trajetoria_mapa(banco.deposito, banco.clientes, traj_lat, traj_lon)
+    trajetoria_animada(banco.deposito, banco.clientes, traj_lat, traj_lon)
 
 
 if __name__ == "__main__":

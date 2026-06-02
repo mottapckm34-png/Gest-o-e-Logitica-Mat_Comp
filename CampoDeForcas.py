@@ -4,7 +4,7 @@ from Obstaculo import Obstaculo, OBSTACULOS
 from CalculoDaDistancia import haversine 
 
 FORCA_ATRATIVA  = 1000.0
-FORCA_REPULSIVA = 2000.0
+FORCA_REPULSIVA = 900.0
 
 
 def f_atrativa(lat_navio: float, lon_navio: float,

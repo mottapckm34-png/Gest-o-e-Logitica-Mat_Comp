@@ -1,21 +1,14 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-from CampoDeForcas import f_total
+from CampoDeForcas import f_total, f_atrativa
 from Cliente import Cliente
 from Deposito import Deposito
 from Obstaculo import OBSTACULOS, Obstaculo
 from CalculoDaDistancia import haversine
 
-# Limites do mapa — Golfo do México
-MAPA_EXTENT = [-100, -75, 17, 33]
 
-# Raio em km para considerar chegada ao destino
+# Raio em km para considerar que o navio chegou ao cliente/depósito
 RAIO_CHEGADA_KM = 50.0
-
-# Amortecimento de velocidade por passo (evita inércia excessiva)
-DRAG = 0.02
 
 
 def simula_trajeto_euler(
@@ -30,12 +23,15 @@ def simula_trajeto_euler(
 
     Fluxo:
       1. Navio parte do depósito com velocidade zero
-      2. A cada passo, f_total é calculado com clientes NÃO visitados
-      3. Quando chega a RAIO_CHEGADA_KM de um cliente, marca como visitado
-      4. Após visitar todos, retorna ao depósito (ponto final)
+      2. A cada passo, f_total é calculado apenas com clientes NÃO visitados
+      3. Quando chega a menos de RAIO_CHEGADA_KM de um cliente, marca como visitado
+      4. Após visitar todos, retorna ao depósito
+      5. Simulação encerra quando volta ao depósito
 
-    DRAG reduz a velocidade acumulada a cada passo, evitando que o
-    navio saia dos limites do Golfo por inércia.
+    Retorna:
+      - trajetoria_lat : lista de latitudes
+      - trajetoria_lon : lista de longitudes
+      - ordem_visita   : lista com os nomes visitados em ordem
     """
     lat  = deposito.latitude
     lon  = deposito.longitude
@@ -46,38 +42,55 @@ def simula_trajeto_euler(
     trajetoria_lon = [lon]
     ordem_visita   = []
 
+    # Cópia mutável — vamos removendo conforme o navio visita
     clientes_pendentes = list(clientes)
-    retornando = False
+    retornando = False  # flag: todos visitados, voltando ao depósito
 
     for _ in range(num_passos):
 
+        # ── Verifica chegada ────────────────────────────────────
         if not retornando:
             for cliente in clientes_pendentes[:]:
                 dist = haversine(lat, lon, cliente.latitude, cliente.longitude)
                 if dist <= RAIO_CHEGADA_KM:
-                    print(f"  ✓ Chegou: {cliente.nome} ({dist:.1f} km)")
+                    print(f"  ✓ Navio chegou ao cliente: {cliente.nome} "
+                          f"(distância: {dist:.1f} km)")
                     ordem_visita.append(cliente.nome)
                     clientes_pendentes.remove(cliente)
+
+                    # Zera velocidade ao chegar — navio "para" para entregar
                     vlat = 0.0
                     vlon = 0.0
 
+            # Todos visitados → começa a retornar
             if not clientes_pendentes:
                 retornando = True
-                print("  ✓ Todos visitados! Retornando ao depósito...")
+                print("  ✓ Todos os clientes visitados! Retornando ao depósito...")
+
         else:
+            # Verifica chegada ao depósito
             dist_dep = haversine(lat, lon, deposito.latitude, deposito.longitude)
             if dist_dep <= RAIO_CHEGADA_KM:
-                print(f"  ✓ Retornou ao depósito! ({dist_dep:.1f} km)")
-                trajetoria_lat.append(deposito.latitude)
-                trajetoria_lon.append(deposito.longitude)
+                print(f"  ✓ Navio retornou ao depósito! (distância: {dist_dep:.1f} km)")
+                trajetoria_lat.append(lat)
+                trajetoria_lon.append(lon)
                 break
 
-        alvo = clientes_pendentes if not retornando else [_deposito_como_cliente(deposito)]
-        fx, fy = f_total(lat, lon, alvo, OBSTACULOS)
+        # ── Calcula forças ──────────────────────────────────────
+        if not retornando:
+            # Atração pelos clientes pendentes + repulsão dos obstáculos
+            fx, fy = f_total(lat, lon, clientes_pendentes, OBSTACULOS)
+        else:
+            # Atração de volta ao depósito (simulado como cliente temporário)
+            dep_como_alvo = _deposito_como_cliente(deposito)
+            fx, fy = f_total(lat, lon, [dep_como_alvo], OBSTACULOS)
 
-        # Euler com amortecimento — v_nova = v*(1-drag) + a*dt
-        vlat = vlat * (1 - DRAG) + (fx / massa) * dt
-        vlon = vlon * (1 - DRAG) + (fy / massa) * dt
+        # ── Método de Euler ─────────────────────────────────────
+        alat = fx / massa
+        alon = fy / massa
+
+        vlat += alat * dt
+        vlon += alon * dt
 
         lat += vlat * dt
         lon += vlon * dt
@@ -89,26 +102,20 @@ def simula_trajeto_euler(
 
 
 def _deposito_como_cliente(deposito: Deposito) -> Cliente:
-    """Cliente temporário na posição do depósito para atrair o navio de volta."""
+    """
+    Cria um Cliente temporário na posição do depósito para
+    reutilizar f_total na fase de retorno.
+    """
     return Cliente(
-        id=0, nome="Depósito",
-        latitude=deposito.latitude, longitude=deposito.longitude,
-        peso=5000.0, janela_inicio=0.0, janela_fim=24.0, tempo_servico=0.0
+        id=0,
+        nome="Depósito",
+        latitude=deposito.latitude,
+        longitude=deposito.longitude,
+        peso=5000.0,   # peso alto para atração forte de volta
+        janela_inicio=0.0,
+        janela_fim=24.0,
+        tempo_servico=0.0
     )
-
-
-def _montar_mapa(ax):
-    """Desenha o fundo geográfico do Golfo do México com cartopy."""
-    ax.set_extent(MAPA_EXTENT, crs=ccrs.PlateCarree())
-    ax.add_feature(cfeature.OCEAN,     color='#a8d8ea', zorder=0)
-    ax.add_feature(cfeature.LAND,      color='#f5e6c8', zorder=1)
-    ax.add_feature(cfeature.COASTLINE, linewidth=0.8,   zorder=2)
-    ax.add_feature(cfeature.BORDERS,   linewidth=0.6, linestyle='--', zorder=2)
-    ax.add_feature(cfeature.STATES,    linewidth=0.3,   zorder=2)
-    gl = ax.gridlines(draw_labels=True, linewidth=0.4,
-                      color='gray', alpha=0.5, linestyle=':')
-    gl.top_labels   = False
-    gl.right_labels = False
 
 
 def trajetoria_mapa(
@@ -118,40 +125,38 @@ def trajetoria_mapa(
     trajetoria_lon: list[float],
     ordem_visita: list[str]
 ):
-    """Plota o mapa estático do Golfo com a trajetória completa."""
-    fig = plt.figure(figsize=(14, 9))
-    ax  = plt.axes(projection=ccrs.PlateCarree())
-    _montar_mapa(ax)
+    """Plota o mapa estático com a trajetória completa."""
+    plt.figure(figsize=(10, 8))
 
     for obs in OBSTACULOS:
-        ax.scatter(obs.longitude, obs.latitude, s=obs.raio_km * 80,
-                   color='red', alpha=0.25, transform=ccrs.PlateCarree(), zorder=3)
-        ax.scatter(obs.longitude, obs.latitude, s=30, color='darkred', marker='X',
-                   transform=ccrs.PlateCarree(), zorder=4)
-        ax.text(obs.longitude + 0.3, obs.latitude, obs.nome,
-                fontsize=7, color='darkred', transform=ccrs.PlateCarree())
+        plt.scatter(obs.longitude, obs.latitude, s=obs.raio_km * 1000, color='red', alpha=0.3)
+        plt.scatter(obs.longitude, obs.latitude, s=20, color='red', label=obs.nome)
+        plt.text(obs.longitude, obs.latitude, f"  {obs.nome}", fontsize=8, color='red')
 
     for cliente in clientes:
-        ax.scatter(cliente.longitude, cliente.latitude, color='blue', marker='^', s=120,
-                   transform=ccrs.PlateCarree(), zorder=5)
-        ax.text(cliente.longitude + 0.3, cliente.latitude,
-                f"C{cliente.id} - {cliente.nome}", fontsize=9, fontweight='bold',
-                color='blue', transform=ccrs.PlateCarree())
+        plt.scatter(cliente.longitude, cliente.latitude, color='blue', marker='^', s=100)
+        plt.text(cliente.longitude, cliente.latitude,
+                 f"  C{cliente.id} - {cliente.nome}",
+                 fontsize=9, fontweight='bold', color='blue')
 
-    ax.scatter(deposito.longitude, deposito.latitude, color='green', marker='s', s=150,
-               transform=ccrs.PlateCarree(), zorder=5, label='Depósito')
-    ax.text(deposito.longitude + 0.3, deposito.latitude, "Depósito",
-            fontsize=9, fontweight='bold', color='green', transform=ccrs.PlateCarree())
+    plt.scatter(deposito.longitude, deposito.latitude,
+                color='green', marker='s', s=120, label='Depósito', zorder=5)
+    plt.text(deposito.longitude, deposito.latitude,
+             "  Depósito", fontsize=9, fontweight='bold', color='green')
 
-    ax.plot(trajetoria_lon, trajetoria_lat, color='orange', linewidth=2.0,
-            transform=ccrs.PlateCarree(), zorder=6, label='Trajetória')
-    ax.scatter(trajetoria_lon[-1], trajetoria_lat[-1], color='green', marker='s',
-               s=150, transform=ccrs.PlateCarree(), zorder=7)
+    plt.plot(trajetoria_lon, trajetoria_lat,
+             color='orange', linewidth=1.5, label='Trajetória do navio', zorder=4)
 
-    ordem_str = " → ".join(ordem_visita)
-    ax.set_title(f"Simulação EDO — Golfo do México\n"
-                 f"Rota: Depósito → {ordem_str} → Depósito", fontsize=12)
-    plt.legend(loc='upper right')
+    plt.scatter(trajetoria_lon[0],  trajetoria_lat[0],  color='green', s=80, zorder=6)
+    plt.scatter(trajetoria_lon[-1], trajetoria_lat[-1],
+                color='orange', marker='*', s=200, label='Posição final', zorder=6)
+
+    ordem_str = " → ".join(ordem_visita) if ordem_visita else "nenhum visitado"
+    plt.title(f"Simulação EDO — Trajetória do navio\nOrdem de visita: Depósito → {ordem_str} → Depósito")
+    plt.xlabel("Longitude")
+    plt.ylabel("Latitude")
+    plt.legend()
+    plt.grid(True, linestyle=':', alpha=0.7)
     plt.tight_layout()
     plt.show()
 
@@ -164,43 +169,41 @@ def trajetoria_animada(
     ordem_visita: list[str],
     intervalo_ms: int = 20
 ):
-    """Anima o navio se movendo no mapa do Golfo do México."""
-    fig = plt.figure(figsize=(14, 9))
-    ax  = plt.axes(projection=ccrs.PlateCarree())
-    _montar_mapa(ax)
+    """Anima o navio se movendo ao longo da trajetória calculada."""
+    fig, ax = plt.subplots(figsize=(10, 8))
 
     for obs in OBSTACULOS:
-        ax.scatter(obs.longitude, obs.latitude, s=obs.raio_km * 80,
-                   color='red', alpha=0.25, transform=ccrs.PlateCarree(), zorder=3)
-        ax.scatter(obs.longitude, obs.latitude, s=30, color='darkred', marker='X',
-                   transform=ccrs.PlateCarree(), zorder=4, label=obs.nome)
-        ax.text(obs.longitude + 0.3, obs.latitude, obs.nome,
-                fontsize=7, color='darkred', transform=ccrs.PlateCarree())
+        ax.scatter(obs.longitude, obs.latitude, s=obs.raio_km * 1000, color='red', alpha=0.3)
+        ax.scatter(obs.longitude, obs.latitude, s=20, color='red', label=obs.nome)
+        ax.text(obs.longitude, obs.latitude, f"  {obs.nome}", fontsize=8, color='red')
 
     for cliente in clientes:
-        ax.scatter(cliente.longitude, cliente.latitude, color='blue', marker='^', s=120,
-                   transform=ccrs.PlateCarree(), zorder=5)
-        ax.text(cliente.longitude + 0.3, cliente.latitude,
-                f"C{cliente.id} - {cliente.nome}", fontsize=9, fontweight='bold',
-                color='blue', transform=ccrs.PlateCarree())
+        ax.scatter(cliente.longitude, cliente.latitude, color='blue', marker='^', s=100)
+        ax.text(cliente.longitude, cliente.latitude,
+                f"  C{cliente.id} - {cliente.nome}",
+                fontsize=9, fontweight='bold', color='blue')
 
-    ax.scatter(deposito.longitude, deposito.latitude, color='green', marker='s', s=150,
-               transform=ccrs.PlateCarree(), zorder=5, label='Depósito')
-    ax.text(deposito.longitude + 0.3, deposito.latitude, "Depósito",
-            fontsize=9, fontweight='bold', color='green', transform=ccrs.PlateCarree())
+    ax.scatter(deposito.longitude, deposito.latitude,
+               color='green', marker='s', s=120, label='Depósito', zorder=5)
+    ax.text(deposito.longitude, deposito.latitude,
+            "  Depósito", fontsize=9, fontweight='bold', color='green')
 
-    ax.plot(trajetoria_lon, trajetoria_lat, color='lightgray', linewidth=1.0,
-            transform=ccrs.PlateCarree(), zorder=4)
+    # Trajetória completa em cinza (guia de fundo)
+    ax.plot(trajetoria_lon, trajetoria_lat,
+            color='lightgray', linewidth=1.0, zorder=3)
 
-    rastro, = ax.plot([], [], color='orange', linewidth=2.0,
-                      transform=ccrs.PlateCarree(), label='Trajetória', zorder=6)
-    navio,  = ax.plot([], [], 'o', color='orange', markersize=10,
-                      transform=ccrs.PlateCarree(), label='Navio', zorder=7)
+    rastro, = ax.plot([], [], color='orange', linewidth=1.5,
+                      label='Trajetória do navio', zorder=4)
+    navio,  = ax.plot([], [], 'o', color='orange', markersize=8,
+                      label='Navio', zorder=6)
 
-    ordem_str = " → ".join(ordem_visita)
-    ax.set_title(f"Simulação EDO — Golfo do México\n"
-                 f"Rota: Depósito → {ordem_str} → Depósito", fontsize=12)
-    plt.legend(loc='upper right')
+    ordem_str = " → ".join(ordem_visita) if ordem_visita else "nenhum visitado"
+    ax.set_title(f"Simulação EDO — Trajetória do navio\n"
+                 f"Ordem de visita: Depósito → {ordem_str} → Depósito")
+    ax.set_xlabel("Longitude")
+    ax.set_ylabel("Latitude")
+    ax.legend()
+    ax.grid(True, linestyle=':', alpha=0.7)
     plt.tight_layout()
 
     def init():
@@ -218,7 +221,11 @@ def trajetoria_animada(
     frames       = range(0, total_frames, passo_frame)
 
     anim = animation.FuncAnimation(
-        fig, update, frames=frames,
-        init_func=init, interval=intervalo_ms, blit=False
+        fig, update,
+        frames=frames,
+        init_func=init,
+        interval=intervalo_ms,
+        blit=True
     )
+
     plt.show()

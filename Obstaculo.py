@@ -2,15 +2,24 @@ from dataclasses import dataclass
  
  
 @dataclass
-class Obstaculo:      # Singular — nome da classe
+class Obstaculo:
     nome: str
     latitude: float
     longitude: float
     raio_km: float
  
  
-OBSTACULOS = [        # Maiúsculo — nome da lista constante
-    Obstaculo(nome="Recife de Corais", latitude=-23.5505, longitude=-46.6333, raio_km=5.0),
-    Obstaculo(nome="Banco de Areia",   latitude=-22.9068, longitude=-43.1729, raio_km=3.0),
-    Obstaculo(nome="Ilha Rochosa",     latitude=-24.5555, longitude=-46.6333, raio_km=4.0),
+OBSTACULOS = [
+    # Recifes de Coral — a leste de Miami, área protegida de navegação
+    Obstaculo(nome="Recifes de Coral",         latitude=25.0,  longitude=-79.5, raio_km=80.0),
+ 
+    # Navio encalhado 2018 — próximo à costa da Louisiana/New Orleans
+    Obstaculo(nome="Navio Encalhado (Louisiana)", latitude=28.5,  longitude=-89.5, raio_km=60.0),
+ 
+    # Navio encalhado 2018 — ao sul, entre Cuba e Flórida
+    Obstaculo(nome="Navio Encalhado (Cuba)",    latitude=23.0,  longitude=-83.0, raio_km=60.0),
+ 
+    # Zona de ancoragem — navios abandonados próximo a Veracruz
+    Obstaculo(nome="Zona de Ancoragem",         latitude=19.8,  longitude=-95.8, raio_km=50.0),
 ]
+ 

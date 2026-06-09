@@ -141,9 +141,9 @@ def trajetoria_mapa(
     plt.figure(figsize=(10, 8))
 
     for obs in OBSTACULOS:
-        plt.scatter(obs.longitude, obs.latitude, s=obs.raio_km * 80, color='red', alpha=0.2)
+        plt.scatter(obs.longitude, obs.latitude, s=obs.raio_km * 80, color='red', alpha=0.25)
         plt.scatter(obs.longitude, obs.latitude, s=40, color='darkred', marker='X', label=obs.nome)
-        plt.text(obs.longitude, obs.latitude, f"  {obs.nome}", fontsize=7, color='darkred')
+        plt.text(obs.longitude + 0.3,obs.latitude, f"  {obs.nome}", fontsize=7, color='darkred')
 
     for cliente in clientes:
         plt.scatter(cliente.longitude, cliente.latitude, color='blue', marker='^', s=100)
@@ -187,7 +187,7 @@ def trajetoria_animada(
     for obs in OBSTACULOS:
         ax.scatter(obs.longitude, obs.latitude, s=obs.raio_km * 1000, color='red', alpha=0.3)
         ax.scatter(obs.longitude, obs.latitude, s=40, color='darkred', marker='X', label=obs.nome)
-        ax.text(obs.longitude, obs.latitude, f"  {obs.nome}", fontsize=8, color='darkred')
+        ax.text(obs.longitude + 0.3, obs.latitude, f"  {obs.nome}", fontsize=8, color='darkred')
 
     for cliente in clientes:
         ax.scatter(cliente.longitude, cliente.latitude, color='blue', marker='^', s=100)

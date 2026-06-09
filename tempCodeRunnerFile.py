@@ -57,7 +57,7 @@ def loop_cadastro_clientes(banco: BancoDeDados):
         proximo_id += 1
 
 # ─────────────────────────────────────────────
-#  FUNÇÃO DE COMPARAÇÃO
+#  FUNÇÃO DE COMPARAÇÃO (Adicionada ao Main)
 # ─────────────────────────────────────────────
 
 def plotar_comparacao_estatica(deposito, clientes, traj1_lat, traj1_lon, traj2_lat, traj2_lon):
@@ -108,12 +108,12 @@ def main():
 
     # 1. Calcula pura e simplesmente a matemática (sem travar a tela)
     print("\n\n══════════ CALCULANDO TRAJETÓRIAS ══════════")
-    print("Calculando Simulação 1 (Manual)...")
+    print("Calculando Simulação 1...")
     traj1_lat, traj1_lon, ordem1 = simula_trajeto_euler(
         deposito=banco.deposito, clientes=banco.clientes, massa=100.0
     )
     
-    print("Calculando Simulação 2 (SciPy)...")
+    print("Calculando Simulação 2...")
     traj2_lat, traj2_lon, ordem2 = simula_euler_numpy(
         deposito=banco.deposito, clientes=banco.clientes, massa=100.0
     )

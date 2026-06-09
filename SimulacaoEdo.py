@@ -6,9 +6,16 @@ from Deposito import Deposito
 from Obstaculo import OBSTACULOS, Obstaculo
 from CalculoDaDistancia import haversine
 
+# ─────────────────────────────────────────────
+#  CONSTANTES DA SIMULAÇÃO
+# ─────────────────────────────────────────────
 
 # Raio em km para considerar que o navio chegou ao cliente/depósito
 RAIO_CHEGADA_KM = 50.0
+
+# Coeficiente de atrito (resistência da água). 
+# Evita o acúmulo infinito de energia cinética (comportamento caótico).
+DRAG = 0.02 
 
 
 def simula_trajeto_euler(
@@ -45,6 +52,9 @@ def simula_trajeto_euler(
     # Cópia mutável — vamos removendo conforme o navio visita
     clientes_pendentes = list(clientes)
     retornando = False  # flag: todos visitados, voltando ao depósito
+
+    # Equivalente do arrasto adaptado para o passo de tempo discreto
+    c_drag = DRAG / dt
 
     for _ in range(num_passos):
 
@@ -85,15 +95,17 @@ def simula_trajeto_euler(
             dep_como_alvo = _deposito_como_cliente(deposito)
             fx, fy = f_total(lat, lon, [dep_como_alvo], OBSTACULOS)
 
-        # ── Método de Euler ─────────────────────────────────────
+        # ── Método de Euler Explícito ───────────────────────────
         alat = fx / massa
         alon = fy / massa
 
-        vlat += alat * dt
-        vlon += alon * dt
-
+        # 1. Atualiza a posição baseada na velocidade atual
         lat += vlat * dt
         lon += vlon * dt
+
+        # 2. Atualiza a velocidade aplicando aceleração e dissipação pelo arrasto
+        vlat += (alat - c_drag * vlat) * dt
+        vlon += (alon - c_drag * vlon) * dt
 
         trajetoria_lat.append(lat)
         trajetoria_lon.append(lon)
@@ -228,4 +240,4 @@ def trajetoria_animada(
         blit=True
     )
 
-    plt.show()
+    return anim

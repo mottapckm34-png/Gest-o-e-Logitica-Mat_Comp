@@ -240,4 +240,4 @@ def trajetoria_animada(
         blit=True
     )
 
-    return anim
+    plt.show()

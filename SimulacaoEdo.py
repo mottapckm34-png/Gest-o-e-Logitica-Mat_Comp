@@ -88,8 +88,10 @@ def simula_trajeto_euler(
 
         # ── Calcula forças ──────────────────────────────────────
         if not retornando:
-            # Atração pelos clientes pendentes + repulsão dos obstáculos
-            fx, fy = f_total(lat, lon, clientes_pendentes, OBSTACULOS)
+            # Atrai apenas o cliente mais próximo — evita interferência entre clientes
+            proximo = min(clientes_pendentes,
+                         key=lambda c: haversine(lat, lon, c.latitude, c.longitude))
+            fx, fy = f_total(lat, lon, [proximo], OBSTACULOS)
         else:
             # Atração de volta ao depósito (simulado como cliente temporário)
             dep_como_alvo = _deposito_como_cliente(deposito)

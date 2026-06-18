@@ -163,7 +163,13 @@ def simula_euler_numpy(
                 break
 
         # ── Define o sistema de EDOs para este passo ────────
-        alvo = clientes_pendentes if not retornando else [_deposito_como_cliente(deposito)]
+        # Atrai apenas o cliente mais próximo — evita interferência entre clientes
+        if not retornando:
+            proximo = min(clientes_pendentes,
+                         key=lambda c: haversine(pos[0], pos[1], c.latitude, c.longitude))
+            alvo = [proximo]
+        else:
+            alvo = [_deposito_como_cliente(deposito)]
 
         def sistema_edo(t, y, alvo=alvo):
             """

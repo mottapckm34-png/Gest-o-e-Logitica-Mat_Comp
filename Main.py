@@ -7,7 +7,7 @@ from BancoDeDados import BancoDeDados
 from Obstaculo import OBSTACULOS
 from SimulacaoEdo import simula_trajeto_euler, trajetoria_animada
 from SimulacaoEulerScipy import simula_euler_numpy, animar_mapa_numpy
-
+from Financeiro import calcular_fn
 # ─────────────────────────────────────────────
 #  FUNÇÕES DE CADASTRO
 # ─────────────────────────────────────────────
@@ -85,6 +85,29 @@ def plotar_comparacao_estatica(deposito, clientes, traj1_lat, traj1_lon, traj2_l
     
     # O block=True trava esta janela específica no processo principal
     plt.show(block=True)
+
+
+from Financeiro import calcular_fn
+
+#=================================================
+# ... dentro da função main(), após rodar as simulações ...
+#==================================================
+def exibir_resultados(nome_simulacao, traj_lat, traj_lon, clientes, navio):
+    res = calcular_fn(traj_lat, traj_lon, clientes, navio)
+    print(f"\n--- {nome_simulacao} ---")
+    print(f"  Combustível : {res['consumo_litros']} L | Lucro (fn) : R$ {res['fn_lucro']}")
+    print(f"  Receita     : R$ {res['receita']} | Custo : R$ {res['custo_total']}")
+
+# Chamada no main:
+print("\n\n══════════ RESULTADOS FINANCEIROS ══════════")
+exibir_resultados("Simulação 1 (Manual)", traj1_lat, traj1_lon, banco.clientes, banco.navio)
+exibir_resultados("Simulação 2 (SciPy)", traj2_lat, traj2_lon, banco.clientes, banco.navio)
+print("════════════════════════════════════════════")
+
+
+
+
+
 
 # ─────────────────────────────────────────────
 #  MAIN

@@ -3,8 +3,8 @@ from Cliente import Cliente
 from Obstaculo import Obstaculo, OBSTACULOS
 from CalculoDaDistancia import haversine
 
-FORCA_ATRATIVA  = 1000.0
-FORCA_REPULSIVA = 80.0   # Balanceado com a atração — evita trajetória caótica
+FORCA_ATRATIVA  = 2000.0
+FORCA_REPULSIVA = 1800.0   # Balanceado com a atração — evita trajetória caótica
 
 
 def f_atrativa(lat_navio: float, lon_navio: float,

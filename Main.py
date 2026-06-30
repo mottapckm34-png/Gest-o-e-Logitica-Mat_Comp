@@ -8,6 +8,7 @@ from Obstaculo import OBSTACULOS
 from SimulacaoEdo import simula_trajeto_euler, trajetoria_animada
 from SimulacaoEulerScipy import simula_euler_numpy, animar_mapa_numpy
 from Financeiro import calcular_fn
+
 # ─────────────────────────────────────────────
 #  FUNÇÕES DE CADASTRO
 # ─────────────────────────────────────────────
@@ -57,7 +58,7 @@ def loop_cadastro_clientes(banco: BancoDeDados):
         proximo_id += 1
 
 # ─────────────────────────────────────────────
-#  FUNÇÃO DE COMPARAÇÃO
+#  FUNÇÕES DE EXIBIÇÃO E COMPARAÇÃO
 # ─────────────────────────────────────────────
 
 def plotar_comparacao_estatica(deposito, clientes, traj1_lat, traj1_lon, traj2_lat, traj2_lon):
@@ -83,31 +84,13 @@ def plotar_comparacao_estatica(deposito, clientes, traj1_lat, traj1_lon, traj2_l
     ax.legend()
     ax.grid(True, linestyle=':', alpha=0.7)
     
-    # O block=True trava esta janela específica no processo principal
     plt.show(block=True)
 
-
-from Financeiro import calcular_fn
-
-#=================================================
-# ... dentro da função main(), após rodar as simulações ...
-#==================================================
 def exibir_resultados(nome_simulacao, traj_lat, traj_lon, clientes, navio):
     res = calcular_fn(traj_lat, traj_lon, clientes, navio)
     print(f"\n--- {nome_simulacao} ---")
     print(f"  Combustível : {res['consumo_litros']} L | Lucro (fn) : R$ {res['fn_lucro']}")
     print(f"  Receita     : R$ {res['receita']} | Custo : R$ {res['custo_total']}")
-
-# Chamada no main:
-print("\n\n══════════ RESULTADOS FINANCEIROS ══════════")
-exibir_resultados("Simulação 1 (Manual)", traj1_lat, traj1_lon, banco.clientes, banco.navio)
-exibir_resultados("Simulação 2 (SciPy)", traj2_lat, traj2_lon, banco.clientes, banco.navio)
-print("════════════════════════════════════════════")
-
-
-
-
-
 
 # ─────────────────────────────────────────────
 #  MAIN
@@ -143,6 +126,12 @@ def main():
 
     print(f"\nRota 1: Depósito → {' → '.join(ordem1)} → Depósito")
     print(f"Rota 2: Depósito → {' → '.join(ordem2)} → Depósito")
+
+    # Resultados financeiros são calculados aqui, dentro do escopo onde as trajetórias existem
+    print("\n\n══════════ RESULTADOS FINANCEIROS ══════════")
+    exibir_resultados("Simulação 1 (Manual)", traj1_lat, traj1_lon, banco.clientes, banco.navio)
+    exibir_resultados("Simulação 2 (SciPy)", traj2_lat, traj2_lon, banco.clientes, banco.navio)
+    print("════════════════════════════════════════════")
 
     # 2. Isola as animações que chamam plt.show() em processos paralelos
     p1 = mp.Process(target=trajetoria_animada, args=(banco.deposito, banco.clientes, traj1_lat, traj1_lon, ordem1))

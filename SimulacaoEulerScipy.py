@@ -6,6 +6,8 @@ from Cliente import Cliente
 from Deposito import Deposito
 from Obstaculo import OBSTACULOS, Obstaculo
 from CalculoDaDistancia import haversine
+from Financeiro import calcular_fn
+from AtributosDoNavio import AtributosDoNavio
 
 # ─────────────────────────────────────────────
 #  CONSTANTES
@@ -23,40 +25,24 @@ MAPA_EXTENT     = [-100, -75, 17, 33]
 # ─────────────────────────────────────────────
 
 class ForwardEuler(OdeSolver):
-    """
-    Implementação do método de Euler explícito usando a infraestrutura
-    do scipy.integrate.OdeSolver.
-
-    Ao herdar OdeSolver e implementar _step_impl(), o scipy reconhece
-    essa classe como um método válido para solve_ivp(), permitindo
-    comparação direta com métodos aprovados como RK45.
-
-    Equação de Euler aplicada a cada passo:
-        y_novo = y + dt * f(t, y)
-
-    É exatamente o mesmo algoritmo do nosso SimulacaoEdo.py,
-    agora validado pela infraestrutura oficial do scipy.
-    """
-
     def __init__(self, fun, t0, y0, t_bound, vectorized, max_step=0.1, **opts):
         super().__init__(fun, t0, y0, t_bound, vectorized, **opts)
-        self.dt = max_step  # dt — mesmo parâmetro do nosso Euler manual
+        self.dt = max_step
 
     def _step_impl(self):
         t = self.t
         y = self.y
-        h = min(self.dt, self.t_bound - t)  # garante não ultrapassar t_bound
+        h = min(self.dt, self.t_bound - t)
 
         if h <= 0:
             return False, 'Step size zero'
 
-        # y_novo = y + h * f(t, y)  ←  Euler explícito
         self.y = y + h * self.fun(t, y)
         self.t = t + h
         return True, None
 
     def _dense_output_impl(self):
-        return None   # não usamos interpolação densa
+        return None
 
 
 # ─────────────────────────────────────────────
@@ -104,24 +90,7 @@ def simula_euler_numpy(
     dt: float = 0.1,
     num_passos: int = 15000
 ) -> tuple[np.ndarray, np.ndarray, list[str]]:
-    """
-    Simula a trajetória do navio pelo método de Euler usando:
-      - numpy  : vetores de posição, velocidade e força
-      - scipy  : ForwardEuler via solve_ivp() para integrar as equações
 
-    Estado do sistema: y = [lat, lon, vlat, vlon]
-
-    Sistema de EDOs:
-      d(lat)  / dt = vlat
-      d(lon)  / dt = vlon
-      d(vlat) / dt = fx/massa - (DRAG/dt)*vlat   ← amortecimento contínuo
-      d(vlon) / dt = fy/massa - (DRAG/dt)*vlon
-
-    O drag discreto 'v *= (1-DRAG)' é equivalente ao termo
-    contínuo '-DRAG/dt * v', mantendo consistência com SimulacaoEdo.
-    """
-
-    # Coeficiente de amortecimento contínuo equivalente ao drag discreto
     c_drag = DRAG / dt
 
     traj       = np.zeros((num_passos + 2, 2))
@@ -132,14 +101,10 @@ def simula_euler_numpy(
     clientes_pendentes = list(clientes)
     retornando         = False
 
-    # Estado inicial: [lat, lon, vlat, vlon]
     y0 = np.array([deposito.latitude, deposito.longitude, 0.0, 0.0])
-
     t_atual = 0.0
 
     for _ in range(num_passos):
-
-        # ── Verifica chegada ────────────────────────────────
         pos = y0[:2]
 
         if not retornando:
@@ -149,7 +114,7 @@ def simula_euler_numpy(
                     print(f"  ✓ Chegou: {cliente.nome} ({dist:.1f} km)")
                     ordem_visita.append(cliente.nome)
                     clientes_pendentes.remove(cliente)
-                    y0[2:] = 0.0   # zera velocidade ao entregar
+                    y0[2:] = 0.0
 
             if not clientes_pendentes:
                 retornando = True
@@ -162,8 +127,6 @@ def simula_euler_numpy(
                 idx += 1
                 break
 
-        # ── Define o sistema de EDOs para este passo ────────
-        # Atrai apenas o cliente mais próximo — evita interferência entre clientes
         if not retornando:
             proximo = min(clientes_pendentes,
                          key=lambda c: haversine(pos[0], pos[1], c.latitude, c.longitude))
@@ -172,13 +135,6 @@ def simula_euler_numpy(
             alvo = [_deposito_como_cliente(deposito)]
 
         def sistema_edo(t, y, alvo=alvo):
-            """
-            Sistema de 4 equações:
-              dy[0]/dt = y[2]          (lat  += vlat)
-              dy[1]/dt = y[3]          (lon  += vlon)
-              dy[2]/dt = fx/m - c*y[2] (vlat += alat - drag*vlat)
-              dy[3]/dt = fy/m - c*y[3] (vlon += alon - drag*vlon)
-            """
             pos_atual = y[:2]
             vel_atual = y[2:]
             F = f_total_np(pos_atual, alvo, OBSTACULOS)
@@ -190,17 +146,16 @@ def simula_euler_numpy(
                 a[1] - c_drag * vel_atual[1],
             ])
 
-        # ── solve_ivp com ForwardEuler — um passo ───────────
         sol = solve_ivp(
             fun=sistema_edo,
             t_span=(t_atual, t_atual + dt),
             y0=y0,
-            method=ForwardEuler,   # nosso Euler via scipy
+            method=ForwardEuler,
             max_step=dt,
             dense_output=False
         )
 
-        y0      = sol.y[:, -1]     # estado após o passo
+        y0      = sol.y[:, -1]
         t_atual += dt
 
         traj[idx] = y0[:2]
@@ -229,7 +184,6 @@ def plotar_mapa_numpy(
     traj_lon: np.ndarray,
     ordem_visita: list[str]
 ):
-    """Plota o mapa estático com a trajetória calculada via scipy+numpy."""
     fig, ax = plt.subplots(figsize=(12, 8))
 
     for obs in OBSTACULOS:
@@ -273,12 +227,12 @@ def plotar_mapa_numpy(
 def animar_mapa_numpy(
     deposito: Deposito,
     clientes: list[Cliente],
+    navio: AtributosDoNavio,
     traj_lat: np.ndarray,
     traj_lon: np.ndarray,
     ordem_visita: list[str],
     intervalo_ms: int = 20
 ):
-    """Anima o navio se movendo ao longo da trajetória calculada via scipy+numpy."""
     fig, ax = plt.subplots(figsize=(12, 8))
 
     for obs in OBSTACULOS:
@@ -305,30 +259,44 @@ def animar_mapa_numpy(
 
     rastro, = ax.plot([], [], color='orange', linewidth=2.0,
                       label='Trajetória (scipy ForwardEuler)', zorder=4)
-    navio,  = ax.plot([], [], 'o', color='orange', markersize=10,
+    navio_plot,  = ax.plot([], [], 'o', color='orange', markersize=10,
                       label='Navio', zorder=6)
 
     ax.set_xlim(MAPA_EXTENT[0], MAPA_EXTENT[1])
     ax.set_ylim(MAPA_EXTENT[2], MAPA_EXTENT[3])
+
+    # Caixa de texto com dados financeiros
+    res = calcular_fn(traj_lat, traj_lon, clientes, navio)
+    info_text = (
+        f"ESTATÍSTICAS DA ROTA (SciPy):\n"
+        f"Combustível: {res['consumo_litros']:.2f} L\n"
+        f"Custo Total: R$ {res['custo_total']:.2f}\n"
+        f"Receita: R$ {res['receita']:.2f}\n"
+        f"Lucro Líquido: R$ {res['fn_lucro']:.2f}"
+    )
+    
+    ax.text(0.02, 0.98, info_text, transform=ax.transAxes, fontsize=10,
+            verticalalignment='top', 
+            bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.9, edgecolor='gray'))
 
     ordem_str = " → ".join(ordem_visita)
     ax.set_title(f"Simulação Euler (scipy + NumPy) — Golfo do México\n"
                  f"Rota: Depósito → {ordem_str} → Depósito")
     ax.set_xlabel("Longitude")
     ax.set_ylabel("Latitude")
-    ax.legend()
+    ax.legend(loc='lower right')
     ax.grid(True, linestyle=':', alpha=0.7)
     plt.tight_layout()
 
     def init():
         rastro.set_data([], [])
-        navio.set_data([], [])
-        return rastro, navio
+        navio_plot.set_data([], [])
+        return rastro, navio_plot
 
     def update(frame):
         rastro.set_data(traj_lon[:frame], traj_lat[:frame])
-        navio.set_data([traj_lon[frame]], [traj_lat[frame]])
-        return rastro, navio
+        navio_plot.set_data([traj_lon[frame]], [traj_lat[frame]])
+        return rastro, navio_plot
 
     total_frames = len(traj_lat)
     passo_frame  = max(1, total_frames // 400)

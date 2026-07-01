@@ -5,18 +5,15 @@ from Cliente import Cliente
 from Deposito import Deposito
 from Obstaculo import OBSTACULOS, Obstaculo
 from CalculoDaDistancia import haversine
+from Financeiro import calcular_fn
+from AtributosDoNavio import AtributosDoNavio
 
 # ─────────────────────────────────────────────
 #  CONSTANTES DA SIMULAÇÃO
 # ─────────────────────────────────────────────
 
-# Raio em km para considerar que o navio chegou ao cliente/depósito
 RAIO_CHEGADA_KM = 50.0
-
-# Coeficiente de atrito (resistência da água). 
-# Evita o acúmulo infinito de energia cinética (comportamento caótico).
 DRAG = 0.02 
-
 
 def simula_trajeto_euler(
     deposito: Deposito,
@@ -25,21 +22,7 @@ def simula_trajeto_euler(
     dt: float = 0.1,
     num_passos: int = 15000
 ) -> tuple[list[float], list[float], list[str]]:
-    """
-    Simula a trajetória do navio usando o método de Euler com lógica de visita.
-
-    Fluxo:
-      1. Navio parte do depósito com velocidade zero
-      2. A cada passo, f_total é calculado apenas com clientes NÃO visitados
-      3. Quando chega a menos de RAIO_CHEGADA_KM de um cliente, marca como visitado
-      4. Após visitar todos, retorna ao depósito
-      5. Simulação encerra quando volta ao depósito
-
-    Retorna:
-      - trajetoria_lat : lista de latitudes
-      - trajetoria_lon : lista de longitudes
-      - ordem_visita   : lista com os nomes visitados em ordem
-    """
+    
     lat  = deposito.latitude
     lon  = deposito.longitude
     vlat = 0.0
@@ -49,16 +32,12 @@ def simula_trajeto_euler(
     trajetoria_lon = [lon]
     ordem_visita   = []
 
-    # Cópia mutável — vamos removendo conforme o navio visita
     clientes_pendentes = list(clientes)
-    retornando = False  # flag: todos visitados, voltando ao depósito
-
-    # Equivalente do arrasto adaptado para o passo de tempo discreto
+    retornando = False 
     c_drag = DRAG / dt
 
     for _ in range(num_passos):
 
-        # ── Verifica chegada ────────────────────────────────────
         if not retornando:
             for cliente in clientes_pendentes[:]:
                 dist = haversine(lat, lon, cliente.latitude, cliente.longitude)
@@ -68,17 +47,14 @@ def simula_trajeto_euler(
                     ordem_visita.append(cliente.nome)
                     clientes_pendentes.remove(cliente)
 
-                    # Zera velocidade ao chegar — navio "para" para entregar
                     vlat = 0.0
                     vlon = 0.0
 
-            # Todos visitados → começa a retornar
             if not clientes_pendentes:
                 retornando = True
                 print("  ✓ Todos os clientes visitados! Retornando ao depósito...")
 
         else:
-            # Verifica chegada ao depósito
             dist_dep = haversine(lat, lon, deposito.latitude, deposito.longitude)
             if dist_dep <= RAIO_CHEGADA_KM:
                 print(f"  ✓ Navio retornou ao depósito! (distância: {dist_dep:.1f} km)")
@@ -86,26 +62,20 @@ def simula_trajeto_euler(
                 trajetoria_lon.append(lon)
                 break
 
-        # ── Calcula forças ──────────────────────────────────────
         if not retornando:
-            # Atrai apenas o cliente mais próximo — evita interferência entre clientes
             proximo = min(clientes_pendentes,
                          key=lambda c: haversine(lat, lon, c.latitude, c.longitude))
             fx, fy = f_total(lat, lon, [proximo], OBSTACULOS)
         else:
-            # Atração de volta ao depósito (simulado como cliente temporário)
             dep_como_alvo = _deposito_como_cliente(deposito)
             fx, fy = f_total(lat, lon, [dep_como_alvo], OBSTACULOS)
 
-        # ── Método de Euler Explícito ───────────────────────────
         alat = fx / massa
         alon = fy / massa
 
-        # 1. Atualiza a posição baseada na velocidade atual
         lat += vlat * dt
         lon += vlon * dt
 
-        # 2. Atualiza a velocidade aplicando aceleração e dissipação pelo arrasto
         vlat += (alat - c_drag * vlat) * dt
         vlon += (alon - c_drag * vlon) * dt
 
@@ -116,16 +86,12 @@ def simula_trajeto_euler(
 
 
 def _deposito_como_cliente(deposito: Deposito) -> Cliente:
-    """
-    Cria um Cliente temporário na posição do depósito para
-    reutilizar f_total na fase de retorno.
-    """
     return Cliente(
         id=0,
         nome="Depósito",
         latitude=deposito.latitude,
         longitude=deposito.longitude,
-        peso=5000.0,   # peso alto para atração forte de volta
+        peso=5000.0,
         janela_inicio=0.0,
         janela_fim=24.0,
         tempo_servico=0.0
@@ -139,7 +105,6 @@ def trajetoria_mapa(
     trajetoria_lon: list[float],
     ordem_visita: list[str]
 ):
-    """Plota o mapa estático com a trajetória completa."""
     plt.figure(figsize=(10, 8))
 
     for obs in OBSTACULOS:
@@ -178,12 +143,12 @@ def trajetoria_mapa(
 def trajetoria_animada(
     deposito: Deposito,
     clientes: list[Cliente],
+    navio: AtributosDoNavio,
     trajetoria_lat: list[float],
     trajetoria_lon: list[float],
     ordem_visita: list[str],
     intervalo_ms: int = 20
 ):
-    """Anima o navio se movendo ao longo da trajetória calculada."""
     fig, ax = plt.subplots(figsize=(10, 8))
 
     for obs in OBSTACULOS:
@@ -202,33 +167,46 @@ def trajetoria_animada(
     ax.text(deposito.longitude, deposito.latitude,
             "  Depósito", fontsize=9, fontweight='bold', color='green')
 
-    # Trajetória completa em cinza (guia de fundo)
     ax.plot(trajetoria_lon, trajetoria_lat,
             color='lightgray', linewidth=1.0, zorder=3)
 
     rastro, = ax.plot([], [], color='orange', linewidth=1.5,
                       label='Trajetória do navio', zorder=4)
-    navio,  = ax.plot([], [], 'o', color='orange', markersize=8,
+    navio_plot,  = ax.plot([], [], 'o', color='orange', markersize=8,
                       label='Navio', zorder=6)
+
+    # Caixa de texto com dados financeiros
+    res = calcular_fn(trajetoria_lat, trajetoria_lon, clientes, navio)
+    info_text = (
+        f"ESTATÍSTICAS DA ROTA (MANUAL):\n"
+        f"Combustível: {res['consumo_litros']:.2f} L\n"
+        f"Custo Total: R$ {res['custo_total']:.2f}\n"
+        f"Receita: R$ {res['receita']:.2f}\n"
+        f"Lucro Líquido: R$ {res['fn_lucro']:.2f}"
+    )
+    
+    ax.text(0.02, 0.98, info_text, transform=ax.transAxes, fontsize=10,
+            verticalalignment='top', 
+            bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.9, edgecolor='gray'))
 
     ordem_str = " → ".join(ordem_visita) if ordem_visita else "nenhum visitado"
     ax.set_title(f"Simulação EDO — Trajetória do navio\n"
                  f"Ordem de visita: Depósito → {ordem_str} → Depósito")
     ax.set_xlabel("Longitude")
     ax.set_ylabel("Latitude")
-    ax.legend()
+    ax.legend(loc='lower right')
     ax.grid(True, linestyle=':', alpha=0.7)
     plt.tight_layout()
 
     def init():
         rastro.set_data([], [])
-        navio.set_data([], [])
-        return rastro, navio
+        navio_plot.set_data([], [])
+        return rastro, navio_plot
 
     def update(frame):
         rastro.set_data(trajetoria_lon[:frame], trajetoria_lat[:frame])
-        navio.set_data([trajetoria_lon[frame]], [trajetoria_lat[frame]])
-        return rastro, navio
+        navio_plot.set_data([trajetoria_lon[frame]], [trajetoria_lat[frame]])
+        return rastro, navio_plot
 
     total_frames = len(trajetoria_lat)
     passo_frame  = max(1, total_frames // 400)

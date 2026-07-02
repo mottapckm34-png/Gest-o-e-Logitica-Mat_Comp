@@ -34,7 +34,7 @@ def desenhar_contorno(ax, com_mar: bool = True, com_legenda: bool = False):
     ax.plot(lon_costa, lat_costa,
             color="#2E7D32", linewidth=2.5, zorder=1, label=rotulo_costa)
     ax.fill(lon_costa, lat_costa,
-            color="#A5D6A7", alpha=0.35, zorder=0)
+            color="#798FF3", alpha=0.35, zorder=0)
 
     # Cuba
     ax.plot(lon_cuba, lat_cuba,

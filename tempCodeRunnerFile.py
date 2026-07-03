@@ -1,6 +1,4 @@
-import math
 import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
 
 from Cliente import Cliente
 from Deposito import Deposito
@@ -12,7 +10,6 @@ from SimulacaoBiblioteca import (simula_biblioteca,
 from Financeiro import calcular_fn
 from MapaGolfo import desenhar_contorno
 from PraticoNavio import rota_com_pratico
-from CalculoDaDistancia import haversine
 
 # ─────────────────────────────────────────────
 #  CONSTANTES
@@ -54,37 +51,12 @@ def carregar_dados():
 #  FUNDO DO MAPA (obstaculos, clientes, deposito)
 # ─────────────────────────────────────────────
 
-def _raio_tangente_km(obs, trajetorias):
-    """
-    Menor distancia (km) do centro do obstaculo ate qualquer ponto das
-    trajetorias fornecidas. Usada como raio do desenho para que o circulo
-    fique tangente a rota (ilustrando o contorno). NAO altera a fisica.
-    """
-    melhor = float('inf')
-    for lat, lon in trajetorias:
-        for i in range(len(lat)):
-            d = haversine(obs.latitude, obs.longitude, lat[i], lon[i])
-            if d < melhor:
-                melhor = d
-    return melhor if melhor != float('inf') else obs.raio_km
-
-
-def desenhar_cenario(ax, deposito, clientes, trajetorias=None):
+def desenhar_cenario(ax, deposito, clientes):
     desenhar_contorno(ax, com_mar=True, com_legenda=True)
 
     for obs in OBSTACULOS:
-        # Raio do desenho = distancia ate o ponto mais proximo da rota,
-        # deixando o circulo tangente a trajetoria. Sem trajetoria, usa raio_km.
-        raio_desenho = (_raio_tangente_km(obs, trajetorias)
-                        if trajetorias else obs.raio_km)
-        km_por_grau_lat = 110.574
-        km_por_grau_lon = 111.320 * math.cos(math.radians(obs.latitude))
-        largura = 2 * raio_desenho / km_por_grau_lon   # diametro em graus (lon)
-        altura  = 2 * raio_desenho / km_por_grau_lat   # diametro em graus (lat)
-        ax.add_patch(Ellipse((obs.longitude, obs.latitude),
-                             width=largura, height=altura,
-                             facecolor='red', edgecolor='darkred',
-                             alpha=0.25, zorder=3))
+        ax.scatter(obs.longitude, obs.latitude,
+                   s=obs.raio_km * 80, color='red', alpha=0.2, zorder=3)
         ax.scatter(obs.longitude, obs.latitude,
                    s=30, color='darkred', marker='X', zorder=4)
         ax.text(obs.longitude + 0.3, obs.latitude,
@@ -118,8 +90,7 @@ def plotar_metodo(deposito, clientes, navio, nome_metodo, cor,
                   lat_lib, lon_lib, arquivo=None,
                   taxa_frete=TAXA_FRETE_POR_TONELADA):
     fig, ax = plt.subplots(figsize=(13, 8))
-    desenhar_cenario(ax, deposito, clientes,
-                     trajetorias=[(lat_man, lon_man)])
+    desenhar_cenario(ax, deposito, clientes)
 
     ordem_str = " -> ".join(ordem) if ordem else "nenhum visitado"
 
@@ -172,8 +143,7 @@ def plotar_comparacao(deposito, clientes, dados, arquivo=None):
       nome, cor, lat_man, lon_man, lat_lib, lon_lib, pontos
     """
     fig, ax = plt.subplots(figsize=(14, 9))
-    desenhar_cenario(ax, deposito, clientes,
-                     trajetorias=[(d['lat_man'], d['lon_man']) for d in dados])
+    desenhar_cenario(ax, deposito, clientes)
 
     for d in dados:
         cor = d['cor']

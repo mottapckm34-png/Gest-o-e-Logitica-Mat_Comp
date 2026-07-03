@@ -2,38 +2,46 @@ from Cliente import Cliente
 from AtributosDoNavio import AtributosDoNavio
 from CalculoDeCombustivel import calcular_consumo_total
 
-def calcular_receita(clientes_atendidos: list[Cliente], taxa_frete_por_kg: float = 15.0) -> float:
+# Frete padrao em R$ por tonelada transportada.
+# Frete oceanico tipico para travessias desse porte fica na casa das
+# centenas de reais por tonelada; 120 R$/t deixa a operacao lucrativa
+# com margem realista.
+TAXA_FRETE_POR_TONELADA = 120.0
+
+
+def calcular_receita(clientes_atendidos: list[Cliente],
+                     taxa_frete_por_tonelada: float = TAXA_FRETE_POR_TONELADA) -> float:
     """
-    Calcula a receita gerada com base no peso total entregue.
+    Receita = carga total entregue (toneladas) x frete por tonelada.
+    O campo 'peso' do cliente representa a carga da entrega em toneladas.
     """
-    peso_total = sum(cliente.peso for cliente in clientes_atendidos)
-    return peso_total * taxa_frete_por_kg
+    carga_total_t = sum(cliente.peso for cliente in clientes_atendidos)
+    return carga_total_t * taxa_frete_por_tonelada
+
 
 def calcular_custo_total(consumo_litros: float, navio: AtributosDoNavio) -> float:
     """
-    Calcula o custo da viagem somando os custos variáveis (combustível) e fixos.
+    Custo da viagem = custo variavel (combustivel) + custo fixo.
     """
     custo_combustivel = consumo_litros * navio.custoPorLitroDeCombustivel
     return custo_combustivel + navio.custoFixoPorViagem
 
-def calcular_fn(trajetoria_lat: list[float], trajetoria_lon: list[float], clientes_atendidos: list[Cliente], navio: AtributosDoNavio, taxa_frete_por_kg: float = 15.0) -> dict:
+
+def calcular_fn(trajetoria_lat: list[float], trajetoria_lon: list[float],
+                clientes_atendidos: list[Cliente], navio: AtributosDoNavio,
+                taxa_frete_por_tonelada: float = TAXA_FRETE_POR_TONELADA) -> dict:
     """
-    Calcula o Lucro Líquido (fn = Receita - Custo).
-    Retorna um dicionário com o detalhamento financeiro para fácil exibição.
+    Lucro liquido (fn = Receita - Custo).
+    Retorna um dicionario com o detalhamento financeiro.
     """
-    # 1. Obter o consumo da rota
     consumo = calcular_consumo_total(trajetoria_lat, trajetoria_lon, navio)
-    
-    # 2. Calcular Custo e Receita
-    custo = calcular_custo_total(consumo, navio)
-    receita = calcular_receita(clientes_atendidos, taxa_frete_por_kg)
-    
-    # 3. Equação fn (Lucro)
-    fn = receita - custo
-    
+    custo   = calcular_custo_total(consumo, navio)
+    receita = calcular_receita(clientes_atendidos, taxa_frete_por_tonelada)
+    fn      = receita - custo
+
     return {
         "consumo_litros": round(consumo, 2),
-        "receita": round(receita, 2),
-        "custo_total": round(custo, 2),
-        "fn_lucro": round(fn, 2)
+        "receita":        round(receita, 2),
+        "custo_total":    round(custo, 2),
+        "fn_lucro":       round(fn, 2),
     }

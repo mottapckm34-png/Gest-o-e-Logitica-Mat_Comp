@@ -183,26 +183,3 @@ def salvar_imagem(deposito, clientes, lat, lon, ordem,
     plt.savefig(arquivo_saida, dpi=150, bbox_inches='tight')
     plt.close(fig)
     print(f"  → Imagem salva: {arquivo_saida}")
-
-
-# ─────────────────────────────────────────────
-#  PONTO DE ENTRADA
-# ─────────────────────────────────────────────
-
-if __name__ == "__main__":
-    deposito, navio, clientes = dados_teste()
-
-    metodos = [
-        (passo_euler, "Euler", "blue",   "trajetoria_euler.png"),
-        (passo_rk2,   "RK2",   "orange", "trajetoria_rk2.png"),
-        (passo_rk4,   "RK4",   "green",  "trajetoria_rk4.png"),
-    ]
-
-    for fn, nome, cor, arquivo in metodos:
-        print(f"\n=== Simulando {nome} ===")
-        lat, lon, ordem = simular(deposito, clientes, fn, nome, massa=100.0)
-        salvar_imagem(deposito, clientes, lat, lon, ordem, nome, cor, arquivo)
-
-    print("\nPronto! Arquivos gerados:")
-    for _, nome, _, arquivo in metodos:
-        print(f"  {arquivo}")

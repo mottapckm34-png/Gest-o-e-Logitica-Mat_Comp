@@ -1,0 +1,31 @@
+"""print (' Python na Escola de Programação Alura\n')
+
+
+nome = "Gabriel"
+idade = 20
+print (f'Meu nome é {nome} e tenho {idade} anos.')
+
+print ("""
+A
+L
+U
+R
+A       
+""")
+
+pi = 3.14159
+
+print(f' O valor aproximado de pi é {pi}!')
+
+"""
+
+List_Of_Numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+List_of_Names = ['Gabriel', 'João', 'Maria', 'José', 'Ana']
+List_of_years_of_birth = [2000, 1995, 1980, 1975, 1960] 
+
+for number in List_Of_Numbers:
+    print (f'Número: {number}')
+
+    Soma += number
+
+print (f'A soma dos números é: {Soma}')

@@ -176,9 +176,9 @@ def comparar_metodos(
     e plota as trajetórias sobrepostas para comparação.
     """
     metodos = [
-        (passo_euler, "Euler",  "blue",   "--"),
-        (passo_rk2,   "RK2",    "orange", "-."),
-        (passo_rk4,   "RK4",    "green",  "-" ),
+        (passo_euler, "Euler",  "#7B2CBF", "--"),
+        (passo_rk2,   "RK2",    "#E67E22", "-."),
+        (passo_rk4,   "RK4",    "#00A5A5", "-" ),
     ]
 
     fig, ax = plt.subplots(figsize=(13, 8))

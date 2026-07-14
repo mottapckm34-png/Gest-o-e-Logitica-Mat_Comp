@@ -211,9 +211,9 @@ def main():
     miami = next(c for c in clientes if c.nome.lower() == "miami")
 
     metodos = [
-        ("Euler", "blue",   passo_euler, EulerScipy),
-        ("RK2",   "orange", passo_rk2,   RK2Scipy),
-        ("RK4",   "green",  passo_rk4,   RK4Scipy),
+        ("Euler", "#FF00C8", passo_euler, EulerScipy),
+        ("RK2",   "#E67E22", passo_rk2,   RK2Scipy),
+        ("RK4",   "#00A5A5", passo_rk4,   RK4Scipy),
     ]
 
     dados_comparacao = []

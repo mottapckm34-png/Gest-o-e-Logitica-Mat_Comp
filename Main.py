@@ -1,4 +1,5 @@
 import math
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 
@@ -153,7 +154,7 @@ def plotar_metodo(deposito, clientes, navio, nome_metodo, cor,
     ax.set_title(f"Metodo: {nome_metodo} - Golfo do Mexico\n"
                  f"Rota: Deposito -> {ordem_str} -> Deposito  "
                  f"(manual vs scipy)")
-    ax.legend(loc='upper right', fontsize=12)
+    ax.legend(loc='upper right', fontsize=12, markerscale=1.3, framealpha=0.9)
     plt.tight_layout()
 
     if arquivo:
@@ -191,12 +192,78 @@ def plotar_comparacao(deposito, clientes, dados, arquivo=None):
 
     ax.set_title("Comparacao dos metodos de EDO - Golfo do Mexico\n"
                  "Euler vs RK2 vs RK4  (linha cheia = manual, tracejada = scipy)")
-    ax.legend(loc='upper right', fontsize=11, ncol=2)
+    ax.legend(loc='upper right', fontsize=11, ncol=2, markerscale=1.3,
+              framealpha=0.9)
     plt.tight_layout()
 
     if arquivo:
         plt.savefig(arquivo, dpi=150, bbox_inches='tight')
         print(f"  -> Salvo: {arquivo}")
+    return fig
+
+
+# ─────────────────────────────────────────────
+#  COMPARATIVO FINANCEIRO: manual vs biblioteca
+# ─────────────────────────────────────────────
+
+def plotar_comparacao_financeira(clientes, navio, dados, arquivo=None,taxa_frete=TAXA_FRETE_POR_TONELADA):
+    """
+    Barras agrupadas comparando consumo de combustivel e lucro (fn)
+    entre a implementacao manual e a integrada pela scipy.
+    dados: mesma lista usada em plotar_comparacao.
+    """
+    nomes = [d['nome'] for d in dados]
+    cores = [d['cor']  for d in dados]
+
+    consumo_man, consumo_lib = [], []
+    lucro_man,   lucro_lib   = [], []
+
+    for d in dados:
+        r_man = calcular_fn(list(d['lat_man']), list(d['lon_man']),clientes, navio, taxa_frete)
+        r_lib = calcular_fn(list(d['lat_lib']), list(d['lon_lib']),clientes, navio, taxa_frete)
+        consumo_man.append(r_man['consumo_litros'])
+        consumo_lib.append(r_lib['consumo_litros'])
+        lucro_man.append(r_man['fn_lucro'])
+        lucro_lib.append(r_lib['fn_lucro'])
+
+    x       = np.arange(len(nomes))
+    largura = 0.35
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+    for ax, v_man, v_lib, titulo, rotulo in (
+        (ax1, consumo_man, consumo_lib,
+         "Consumo de combustivel", "Litros"),
+        (ax2, lucro_man, lucro_lib,
+         "Lucro liquido (fn)", "R$"),
+    ):
+        b1 = ax.bar(x - largura/2, v_man, largura,color=cores, edgecolor='black', linewidth=1.0,label='Manual')
+        b2 = ax.bar(x + largura/2, v_lib, largura,color=cores, edgecolor='black', linewidth=1.0,alpha=0.45, hatch='//', label='Scipy (solve_ivp)')
+
+        ax.bar_label(b1, fmt='%.0f', fontsize=9, padding=2)
+        ax.bar_label(b2, fmt='%.0f', fontsize=9, padding=2)
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(nomes, fontsize=11)
+        ax.set_ylabel(rotulo, fontsize=11)
+        ax.set_title(titulo, fontsize=13)
+        ax.grid(True, axis='y', linestyle=':', alpha=0.5)
+        ax.set_axisbelow(True)
+        ax.legend(loc='lower right', fontsize=11)
+        ax.margins(y=0.15)
+
+    fig.suptitle("Comparativo financeiro por metodo de EDO\n""Barra cheia = manual | Barra hachurada = scipy",fontsize=14)
+    plt.tight_layout()
+
+    if arquivo:
+        plt.savefig(arquivo, dpi=150, bbox_inches='tight')
+        print(f"  -> Salvo: {arquivo}")
+
+    # Tabela no terminal
+    print("\n  Metodo |   Consumo man |   Consumo lib |     Lucro man |     Lucro lib")
+    for i, nome in enumerate(nomes):
+        print(f"  {nome:<6} | {consumo_man[i]:>13.2f} | {consumo_lib[i]:>13.2f} | "f"{lucro_man[i]:>13.2f} | {lucro_lib[i]:>13.2f}")
+
     return fig
 
 
@@ -211,7 +278,7 @@ def main():
     miami = next(c for c in clientes if c.nome.lower() == "miami")
 
     metodos = [
-        ("Euler", "#FF00C8", passo_euler, EulerScipy),
+        ("Euler", "#7B2CBF", passo_euler, EulerScipy),
         ("RK2",   "#E67E22", passo_rk2,   RK2Scipy),
         ("RK4",   "#00A5A5", passo_rk4,   RK4Scipy),
     ]
@@ -245,10 +312,7 @@ def main():
               f"Receita: R$ {res['receita']} | Custo: R$ {res['custo_total']} | "
               f"Lucro (fn): R$ {res['fn_lucro']}")
 
-        plotar_metodo(deposito, clientes, navio, nome, cor,
-                      lat_m, lon_m, ordem, pontos, lat_l, lon_l,
-                      arquivo=f"trajetoria_{nome.lower()}.png",
-                      taxa_frete=TAXA_FRETE_POR_TONELADA)
+        plotar_metodo(deposito, clientes, navio, nome, cor,lat_m, lon_m, ordem, pontos, lat_l, lon_l,arquivo=f"trajetoria_{nome.lower()}.png",taxa_frete=TAXA_FRETE_POR_TONELADA)
 
         dados_comparacao.append({
             'nome': nome, 'cor': cor,
@@ -259,8 +323,11 @@ def main():
 
     # Mapa comparativo com os 3 metodos
     print("\n=== Mapa comparativo (Euler + RK2 + RK4) ===")
-    plotar_comparacao(deposito, clientes, dados_comparacao,
-                      arquivo="trajetoria_comparacao.png")
+    plotar_comparacao(deposito, clientes, dados_comparacao,arquivo="trajetoria_comparacao.png")
+
+    # Comparativo financeiro manual vs scipy
+    print("\n=== Comparativo financeiro (manual vs scipy) ===")
+    plotar_comparacao_financeira(clientes, navio, dados_comparacao,arquivo="comparacao_financeira.png")
 
     print("\nExibindo os graficos...")
     plt.show()

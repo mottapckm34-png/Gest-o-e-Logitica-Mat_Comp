@@ -124,9 +124,9 @@ def plotar_metodo(deposito, clientes, navio, nome_metodo, cor,
     ordem_str = " -> ".join(ordem) if ordem else "nenhum visitado"
 
     # Trajetoria manual (solida) e da biblioteca (tracejada)
-    ax.plot(lon_man, lat_man, color=cor, linewidth=2.2,
+    ax.plot(lon_man, lat_man, color=cor, linewidth=4.0,
             label=f'{nome_metodo} manual ({len(lat_man)} pts)', zorder=7)
-    ax.plot(lon_lib, lat_lib, color='black', linewidth=1.3, linestyle='--',
+    ax.plot(lon_lib, lat_lib, color='black', linewidth=2.2, linestyle='--',
             alpha=0.9, label=f'{nome_metodo} scipy (solve_ivp)', zorder=8)
 
     ax.scatter(lon_man[0],  lat_man[0],  color='green', marker='s', s=100, zorder=9)
@@ -153,7 +153,7 @@ def plotar_metodo(deposito, clientes, navio, nome_metodo, cor,
     ax.set_title(f"Metodo: {nome_metodo} - Golfo do Mexico\n"
                  f"Rota: Deposito -> {ordem_str} -> Deposito  "
                  f"(manual vs scipy)")
-    ax.legend(loc='upper right', fontsize=8)
+    ax.legend(loc='upper right', fontsize=12)
     plt.tight_layout()
 
     if arquivo:
@@ -177,9 +177,9 @@ def plotar_comparacao(deposito, clientes, dados, arquivo=None):
 
     for d in dados:
         cor = d['cor']
-        ax.plot(d['lon_man'], d['lat_man'], color=cor, linewidth=2.2,
+        ax.plot(d['lon_man'], d['lat_man'], color=cor, linewidth=3.5,
                 label=f"{d['nome']} manual", zorder=7)
-        ax.plot(d['lon_lib'], d['lat_lib'], color=cor, linewidth=1.2,
+        ax.plot(d['lon_lib'], d['lat_lib'], color=cor, linewidth=2.0,
                 linestyle='--', alpha=0.85,
                 label=f"{d['nome']} scipy", zorder=8)
         # Bolinhas da interpolacao na cor do metodo, sem rotulo
@@ -191,7 +191,7 @@ def plotar_comparacao(deposito, clientes, dados, arquivo=None):
 
     ax.set_title("Comparacao dos metodos de EDO - Golfo do Mexico\n"
                  "Euler vs RK2 vs RK4  (linha cheia = manual, tracejada = scipy)")
-    ax.legend(loc='upper right', fontsize=8, ncol=2)
+    ax.legend(loc='upper right', fontsize=11, ncol=2)
     plt.tight_layout()
 
     if arquivo:

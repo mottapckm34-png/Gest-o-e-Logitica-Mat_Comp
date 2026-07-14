@@ -211,7 +211,7 @@ def comparar_metodos(
     for fn, nome, cor, estilo in metodos:
         print(f"\n=== {nome} ===")
         lat, lon, ordem = simular(deposito, clientes, fn, nome, massa, dt)
-        ax.plot(lon, lat, color=cor, linewidth=2.0,
+        ax.plot(lon, lat, color=cor, linewidth=3.5,
                 linestyle=estilo, label=f"{nome} ({len(lat)} pts)",
                 zorder=4, alpha=0.85)
         ax.scatter(lon[-1], lat[-1], color=cor, marker='*', s=200, zorder=7)
